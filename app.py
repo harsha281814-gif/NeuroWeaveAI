@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify
-import subprocess
 import sqlite3
 import os
 import requests
 import datetime
 import platform
+from together import Together
 
 app = Flask(__name__)
+
+# ================== TOGETHER AI ==================
+client = Together()  # uses TOGETHER_API_KEY
 
 # ================== MEMORY ==================
 conn = sqlite3.connect("memory.db", check_same_thread=False)
@@ -37,25 +40,30 @@ def ask_ai(prompt):
     global mode
 
     memory = get_memory()
-    context = ""
+    messages = []
 
-    for u, a in memory:
-        context += f"User: {u}\nAI: {a}\n"
-
+    # Personality
     if mode == "study":
-        personality = "You are a strict study assistant. Give short, clear answers."
+        system_msg = "You are a strict study assistant. Give short, clear answers."
     else:
-        personality = "You are NeuroWeave AI, a smart, friendly futuristic assistant."
+        system_msg = "You are NeuroWeave AI, a smart, friendly futuristic assistant."
 
-    full_prompt = personality + "\n" + context + "\nUser: " + prompt + "\nAI:"
+    messages.append({"role": "system", "content": system_msg})
 
-    result = subprocess.run(
-        ["ollama", "run", "tinyllama"],
-        input=full_prompt.encode(),
-        capture_output=True
+    # Memory context
+    for u, a in memory:
+        messages.append({"role": "user", "content": u})
+        messages.append({"role": "assistant", "content": a})
+
+    # Current input
+    messages.append({"role": "user", "content": prompt})
+
+    response = client.chat.completions.create(
+        model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        messages=messages
     )
 
-    return result.stdout.decode()
+    return response.choices[0].message.content
 
 # ================== INTERNET ==================
 def search_web(query):
@@ -74,7 +82,7 @@ def perform_action(text):
     global mode
     text = text.lower()
 
-    # APP CONTROL
+    # APPS
     if "open chrome" in text:
         os.system("start chrome")
         return "Opening Chrome"
@@ -187,7 +195,7 @@ button {
 
 <body>
 
-<h2>🧠 NeuroWeave AI</h2>
+<h2>🧠 NeuroWeave AI (FREE CLOUD)</h2>
 
 <div id="chat"></div>
 
