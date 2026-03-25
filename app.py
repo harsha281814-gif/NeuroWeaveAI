@@ -38,7 +38,7 @@ mode = "normal"
 def ask_ai(prompt):
     try:
         response = client.chat.completions.create(
-            model="mistralai/Mistral-7B-Instruct",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
             messages=[
                 {"role": "user", "content": prompt}
             ]
